@@ -20,6 +20,6 @@ def log_sweep(fstart, fstop, sweep_time, fs):
                * np.exp(t / (sweep_time) * np.log(fstop / fstart) - 1))
     return (x, sweep_time, fs)
 
-
-x, y, z = lin_sweep(10, 10000, 1, 20000)
-show.sweep(x, y, z)
+# for example
+# x, sweeptime, fs = lin_sweep(10, 10000, 1, 20000)
+# show.sweep(x, y, z)
