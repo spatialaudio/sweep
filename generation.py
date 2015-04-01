@@ -1,19 +1,23 @@
+"""Signal Generation."""
+
 import numpy as np
 
 
 def lin_sweep(fstart, fstop, sweep_time, fs):
-    """Choose the excitation signal which you want to generate and fill
-    in the parameters lin_sweep(fstart, fstop, sweep_time, fs),
+    """Generation of a linear sweep signal.
+
+    Fill in the parameters lin_sweep(fstart, fstop, sweep_time, fs),
     where:
+
     fstart is the start frequency
     fstop  is the stop frequency
     sweep_time is the total length of sweep
     fs is the sampling frequency
 
     Note that the stop frequency must not be greater than half the
-    sampling frequency (Nyquist-Shannon sampling theorem)
-    """
+    sampling frequency (Nyquist-Shannon sampling theorem).
 
+    """
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, sweep_time, 1 / fs)
@@ -24,8 +28,9 @@ def lin_sweep(fstart, fstop, sweep_time, fs):
 
 
 def log_sweep(fstart, fstop, sweep_time, fs):
-    """Choose the excitation signal which you want to generate and fill
-    in the parameters log_sweep(fstart, fstop, sweep_time, fs),
+    """Generation of a logarithmic sweep signal.
+
+    Fill in the parameters log_sweep(fstart, fstop, sweep_time, fs),
     where:
     fstart is the start frequency
     fstop  is the stop frequency
@@ -35,7 +40,6 @@ def log_sweep(fstart, fstop, sweep_time, fs):
     Note that the stop frequency must not be greater than half the
     sampling frequency (Nyquist-Shannon sampling theorem).
     """
-
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, sweep_time, 1 / fs)
