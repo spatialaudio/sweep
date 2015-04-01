@@ -1,16 +1,12 @@
+"""Response calculation."""
 from __future__ import division
 import numpy as np
-import matplotlib.pyplot as plt
 
 
-def deconv(x, y, fs):
-    X = np.fft.fft(x)
-    Y = np.fft.fft(y)
+def calculate(signal_excitation, signal_out):
+    """Function returns impulse response."""
+    X = np.fft.fft(signal_excitation)
+    Y = np.fft.fft(signal_out)
     H = Y / X
     h = np.fft.ifft(H)
-    print("h =", h)  # complex vector?
-    t = np.arange(len(x)) / fs
-    plt.plot(t, h.real)
-    plt.grid()
-    plt.title("impulse response")
-    plt.show()
+    return h
