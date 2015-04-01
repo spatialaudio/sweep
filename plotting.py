@@ -1,49 +1,146 @@
-"""You can figure the signal vector in both the time and frequency
-domains simultaneously or separately, using the 'show' function
-show.plot_y(x, fs).
-
-Note that 'fs' has the same value as in
-'generation' function. """
+"""Plot Functions."""
 
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
+import response
 
 
-def plot_t(x, fs, ax1=None):
-    """Plot in time domain"""
-    t = np.arange(len(x)) / fs
-    h = 0
-    if ax1 is None:
-        fig, ax1 = plt.subplots()
-        h = 1
-    ax1.plot(t, x)
-    ax1.grid()
-    ax1.set_xlabel('t / s')
-    ax1.set_ylabel('x(t)')
-    ax1.set_title('time domain')
-    if h == 1:
-        plt.show()
+def plot_time(signal, fs=None, ax=None):
+    """Plot in time domain.
+
+    Parameters
+    ----------
+    signal  : signal vector
+    fs : sampling frequency, optional
+    ax : axis object, optional
+    """
+    if ax is None:
+        ax = plt.gca()
+    if fs is None:
+        fs = 1
+        ax.set_xlabel("Samples")
+    else:
+        ax.set_xlabel("t / s")
+    t = _time_vector(signal, fs)
+    ax.plot(t, signal)
+    ax.grid()
+    ax.set_ylabel('x(t)')
+    ax.set_title('Time Domain')
+    return ax
 
 
-def plot_f(x, fs, ax2=None):
-    """Plot in frequency domain"""
-    p = 20 * np.log10(abs(np.fft.rfft(x)))
-    f = np.linspace(0, fs / 2, len(p))
-    if ax2 is None:
-        fig, ax2 = plt.subplots()
-    ax2.plot(f, p)
-    ax2.grid()
-    ax2.set_xscale('log')
-    ax2.set_xlabel('f / Hz')
-    ax2.set_ylabel('A / dB')
-    ax2.set_title('frequency domain')
+def plot_freq(signal, fs, ax=None):
+    """Plot in frequency domain.
+
+    Parameters
+    ----------
+    signal  : signal vector
+    fs : sampling frequency
+    ax : axis object, optional
+    """
+    p, f = _freq_vector(signal, fs)
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(f, p)
+    ax.grid()
+    ax.set_xscale('log')
+    ax.set_xlabel('f / Hz')
+    ax.set_ylabel('A / dB')
+    ax.set_title('Frequency Domain')
+    return ax
+
+
+def plot_tf(signal, fs):
+    """Plot in time and frequency domains simultaneously.
+
+    Parameters
+    ----------
+    signal  : signal vector
+    fs : sampling frequency
+    """
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    plt.subplots_adjust(hspace=0.4)
+    plot_time(signal, fs, ax1)
+    plot_freq(signal, fs, ax2)
+
+
+def plot_iresponse(signal_excitation, signal_out, fs=None, ax=None):
+    """Plot impulse response.
+
+    Parameters
+    -----------
+
+    signal_excitation : vector of excitation signal
+    signal_out        : vector of output signal
+    fs                : sampling frequency, optional
+    ax                : axis object, optional
+    """
+    h = response.calculate(signal_excitation, signal_out)
+    if ax is None:
+        ax = plt.gca()
+    if fs is None:
+        fs = 1
+        ax.set_xlabel("Samples")
+    else:
+        ax.set_xlabel("t / s")
+    t = _time_vector(signal_excitation, fs)
+    ax.plot(t, h.real)
+    ax.grid()
+    ax.set_title("Impulse Response")
+    ax.set_ylabel("h(t)")
+    return ax
+
+
+def plot_fresponse(signal_excitation, signal_out, fs, ax=None):
+    """Plot frequency response.
+
+    Parameters
+    ----------
+
+    signal_excitation : vector of excitation signal
+    signal_out        : vector of oufput signal
+    fs                : sampling frequency
+    ax                : axis object, optional
+    """
+    h = response.calculate(signal_excitation, signal_out)
+    p, f = _freq_vector(h.real, fs)
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(f, p)
+    ax.grid()
+    ax.set_xscale('log')
+    ax.set_xlabel('f / Hz')
+    ax.set_ylabel('A / dB')
+    ax.set_title('Frequency Response')
+    return ax
+
+
+def plot_ifresponse(signal_excitation, signal_out, fs):
+    """Plot impulse and frequency response simultaneously.
+
+    Parameters
+    ----------
+    signal_excitation : vector of excitation signal
+    signal_out        : vector of output signal
+    fs                : sampling frequency
+    """
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    plt.subplots_adjust(hspace=0.4)
+    plot_iresponse(signal_excitation, signal_out, fs, ax1)
+    plot_fresponse(signal_excitation, signal_out, fs, ax2)
+
+
+def _show_it():
     plt.show()
 
 
-def plot_tf(x, fs):
-    """Plot in both the time and frequency domains simultaneously"""
-    fig, (ax1, ax2) = plt.subplots(2, 1)
-    plt.subplots_adjust(hspace=0.4)
-    plot_t(x, fs, ax1)
-    plot_f(x, fs, ax2)
+def _time_vector(signal, fs):
+    t = np.arange(len(signal)) / fs
+    return t
+
+
+def _freq_vector(signal, fs):
+    p = 20 * np.log10(np.abs(np.fft.rfft(signal)) / (len(signal)))
+    f = np.linspace(0, fs / 2, len(signal) / 2 + 1)
+    return p, f
