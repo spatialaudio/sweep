@@ -3,7 +3,7 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-import response
+import calculation
 
 
 def plot_time(signal, fs=None, ax=None):
@@ -11,9 +11,16 @@ def plot_time(signal, fs=None, ax=None):
 
     Parameters
     ----------
-    signal  : signal vector
-    fs : sampling frequency, optional
+    signal : array_like
+          Signal vector
+    fs : int, optional
+          Sampling frequency in Hz. If None (default),
+          fs switches to number of bins.
     ax : axis object, optional
+
+    Returns
+    ------
+    ax : axis object
     """
     if ax is None:
         ax = plt.gca()
@@ -24,9 +31,10 @@ def plot_time(signal, fs=None, ax=None):
         ax.set_xlabel("t / s")
     t = _time_vector(signal, fs)
     ax.plot(t, signal)
-    ax.grid()
+    ax.grid(True)
     ax.set_ylabel('x(t)')
-    ax.set_title('Time Domain')
+    ax.set_title('Something in Time Domain')
+    # plt.savefig('myplot_t.png')
     return ax
 
 
@@ -35,19 +43,27 @@ def plot_freq(signal, fs, ax=None):
 
     Parameters
     ----------
-    signal  : signal vector
-    fs : sampling frequency
+    signal : array_like
+          Signal vector
+    fs : int
+      Sampling frequency in Hz
     ax : axis object, optional
+
+    Returns
+    -------
+    ax: axis object
     """
-    p, f = _freq_vector(signal, fs)
+    mag, pha, f = _freq_vector(signal, fs)
     if ax is None:
         ax = plt.gca()
-    ax.plot(f, p)
-    ax.grid()
+    ax.plot(f, mag)
+    # ax.plot(f, pha)
+    ax.grid(True)
     ax.set_xscale('log')
     ax.set_xlabel('f / Hz')
-    ax.set_ylabel('A / dB')
-    ax.set_title('Frequency Domain')
+    ax.set_ylabel('Something')
+    ax.set_title('Something in Frequency Domain')
+    # plt.savefig('myplot_f.pdf')
     return ax
 
 
@@ -56,91 +72,26 @@ def plot_tf(signal, fs):
 
     Parameters
     ----------
-    signal  : signal vector
-    fs : sampling frequency
+    signal : array_like
+          Signal vector
+    fs : int
+          Sampling Frequency in Hz
     """
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    plt.subplots_adjust(hspace=0.4)
+    plt.subplots_adjust(hspace=0.6)
     plot_time(signal, fs, ax1)
     plot_freq(signal, fs, ax2)
-
-
-def plot_iresponse(signal_excitation, signal_out, fs=None, ax=None):
-    """Plot impulse response.
-
-    Parameters
-    -----------
-
-    signal_excitation : vector of excitation signal
-    signal_out        : vector of output signal
-    fs                : sampling frequency, optional
-    ax                : axis object, optional
-    """
-    h = response.calculate(signal_excitation, signal_out)
-    if ax is None:
-        ax = plt.gca()
-    if fs is None:
-        fs = 1
-        ax.set_xlabel("Samples")
-    else:
-        ax.set_xlabel("t / s")
-    t = _time_vector(signal_excitation, fs)
-    ax.plot(t, h.real)
-    ax.grid()
-    ax.set_title("Impulse Response")
-    ax.set_ylabel("h(t)")
-    return ax
-
-
-def plot_fresponse(signal_excitation, signal_out, fs, ax=None):
-    """Plot frequency response.
-
-    Parameters
-    ----------
-
-    signal_excitation : vector of excitation signal
-    signal_out        : vector of oufput signal
-    fs                : sampling frequency
-    ax                : axis object, optional
-    """
-    h = response.calculate(signal_excitation, signal_out)
-    p, f = _freq_vector(h.real, fs)
-    if ax is None:
-        ax = plt.gca()
-    ax.plot(f, p)
-    ax.grid()
-    ax.set_xscale('log')
-    ax.set_xlabel('f / Hz')
-    ax.set_ylabel('A / dB')
-    ax.set_title('Frequency Response')
-    return ax
-
-
-def plot_ifresponse(signal_excitation, signal_out, fs):
-    """Plot impulse and frequency response simultaneously.
-
-    Parameters
-    ----------
-    signal_excitation : vector of excitation signal
-    signal_out        : vector of output signal
-    fs                : sampling frequency
-    """
-    fig, (ax1, ax2) = plt.subplots(2, 1)
-    plt.subplots_adjust(hspace=0.4)
-    plot_iresponse(signal_excitation, signal_out, fs, ax1)
-    plot_fresponse(signal_excitation, signal_out, fs, ax2)
-
-
-def _show_it():
-    plt.show()
+    # plt.savefig('myplot_tf.pdf')
 
 
 def _time_vector(signal, fs):
-    t = np.arange(len(signal)) / fs
-    return t
+    return np.arange(len(signal)) / fs
 
 
 def _freq_vector(signal, fs):
-    p = 20 * np.log10(np.abs(np.fft.rfft(signal)) / (len(signal)))
-    f = np.linspace(0, fs / 2, len(signal) / 2 + 1)
-    return p, f
+    mag = 20 * np.log10(np.abs(np.fft.rfft(signal)) / (len(signal)))
+    pha = np.unwrap(
+        np.arctan2(np.fft.rfft(signal).imag,
+                   np.fft.rfft(signal).real))
+    f = np.linspace(0, fs / 2, len(signal) // 2 + 1)
+    return mag, pha, f
