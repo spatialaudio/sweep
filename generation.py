@@ -3,16 +3,24 @@
 import numpy as np
 
 
-def lin_sweep(fstart, fstop, sweep_time, fs):
+def lin_sweep(fstart, fstop, duration, fs):
     """Generation of a linear sweep signal.
 
-    Fill in the parameters lin_sweep(fstart, fstop, sweep_time, fs),
-    where:
+    Parameters
+    ----------
+    fstart : int
+           Start frequency in Hz
+    fstop  : int
+           Stop frequency in Hz
+    duration : float
+           Total length of signal in s
+    fs : int
+           Sampling frequency in Hz
 
-    fstart is the start frequency
-    fstop  is the stop frequency
-    sweep_time is the total length of sweep
-    fs is the sampling frequency
+    Returns
+    -------
+    array_like
+         generated signal vector
 
     Note that the stop frequency must not be greater than half the
     sampling frequency (Nyquist-Shannon sampling theorem).
@@ -21,28 +29,36 @@ def lin_sweep(fstart, fstop, sweep_time, fs):
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, sweep_time, 1 / fs)
-    x = np.sin(
+    return np.sin(
         2 * np.pi * ((fstop - fstart) /
                      (2 * sweep_time) * t ** 2 + fstart * t))
-    return x
 
 
 def log_sweep(fstart, fstop, sweep_time, fs):
     """Generation of a logarithmic sweep signal.
 
-    Fill in the parameters log_sweep(fstart, fstop, sweep_time, fs),
-    where:
-    fstart is the start frequency
-    fstop  is the stop frequency
-    sweep_time is the total length of sweep
-    fs is the sampling frequency
+    Parameters
+    ----------
+    fstart : int
+           Start frequency in Hz
+    fstop  : int
+           Stop frequency
+    duration : float
+           Total length of signal in s
+    fs : int
+           Sampling frequency in Hz
+
+    Returns
+    -------
+    array_like
+           Generated signal vector
 
     Note that the stop frequency must not be greater than half the
     sampling frequency (Nyquist-Shannon sampling theorem).
+
     """
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, sweep_time, 1 / fs)
-    x = np.sin(2 * np.pi * sweep_time * fstart / np.log(fstop / fstart) *
-               np.exp(t / (sweep_time) * np.log(fstop / fstart) - 1))
-    return x
+    return np.sin(2 * np.pi * sweep_time * fstart / np.log(fstop / fstart) *
+                  np.exp(t / (sweep_time) * np.log(fstop / fstart) - 1))
