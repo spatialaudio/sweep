@@ -28,13 +28,13 @@ def lin_sweep(fstart, fstop, duration, fs):
     """
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
-    t = np.arange(0, sweep_time, 1 / fs)
+    t = np.arange(0, duration, 1 / fs)
     return np.sin(
         2 * np.pi * ((fstop - fstart) /
-                     (2 * sweep_time) * t ** 2 + fstart * t))
+                     (2 * duration) * t ** 2 + fstart * t))
 
 
-def log_sweep(fstart, fstop, sweep_time, fs):
+def log_sweep(fstart, fstop, duration, fs):
     """Generation of a logarithmic sweep signal.
 
     Parameters
@@ -59,6 +59,6 @@ def log_sweep(fstart, fstop, sweep_time, fs):
     """
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
-    t = np.arange(0, sweep_time, 1 / fs)
-    return np.sin(2 * np.pi * sweep_time * fstart / np.log(fstop / fstart) *
-                  np.exp(t / (sweep_time) * np.log(fstop / fstart) - 1))
+    t = np.arange(0, duration, 1 / fs)
+    return np.sin(2 * np.pi * duration * fstart / np.log(fstop / fstart) *
+                  np.exp(t / (duration) * np.log(fstop / fstart) - 1))
