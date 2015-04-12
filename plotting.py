@@ -89,7 +89,7 @@ def _time_vector(signal, fs):
 
 
 def _freq_vector(signal, fs):
-    mag = 20 * np.log10(np.abs(np.fft.rfft(signal)) / (len(signal)))
+    mag = 20 * np.log10(2 / len(signal) * np.abs(np.fft.rfft(signal)))
     pha = np.unwrap(
         np.arctan2(np.fft.rfft(signal).imag,
                    np.fft.rfft(signal).real))
