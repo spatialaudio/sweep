@@ -2,9 +2,10 @@
 from __future__ import division
 import numpy as np
 
+
 def spectral_division(signal_excitation, system_response):
     """Calculating impulse response.
-    
+
     Parameters
     ----------
     signal_excitation : array_like
@@ -25,12 +26,12 @@ def spectral_division(signal_excitation, system_response):
         NFFT = len(signal_excitation)
         signal_excitation_f = signal_excitation
 
-    return (np.fft.ifft(np.fft.fft(system_response, NFFT) / signal_excitation_f)).real
+    return (np.fft.ifft(np.fft.fft(system_response, NFFT)) / signal_excitation_f).real
 
 
 def snr_db(signal, noise):
     """Calculating Signal-to-noise ratio.
-    
+
     Parameters
     ----------
     signal : array_like
@@ -42,7 +43,7 @@ def snr_db(signal, noise):
     -------
     Returns SNR in dB
     """
-    return 10 * np.log10(_mean_power(signal) / _mean_power(system))
+    return 10 * np.log10(_mean_power(signal) / _mean_power(noise))
 
 
 def _mean_power(signal):
