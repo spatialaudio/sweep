@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import calculation
 
 
-def plot_time(signal, fs=None, ax=None):
+def plot_time(signal, fs=None, ax=None, **kwargs):
     """Plot in time domain.
 
     Parameters
@@ -28,17 +28,23 @@ def plot_time(signal, fs=None, ax=None):
         fs = 1
         ax.set_xlabel("Samples")
     else:
-        ax.set_xlabel("t / s")
+        ax.set_xlabel("t (s)")
     t = _time_vector(signal, fs)
     ax.plot(t, signal)
     ax.grid(True)
     ax.set_ylabel('x(t)')
-    ax.set_title('Something in Time Domain')
-    # plt.savefig('myplot_t.png')
+    ax.set_title('Time Domain')
     return ax
 
 
-def plot_freq(signal, fs, ax=None):
+def plot_freq(
+    signal,
+     fs,
+     ax=None,
+     scale=None,
+     bode=None,
+     side=None,
+     **kwargs):
     """Plot in frequency domain.
 
     Parameters
@@ -53,21 +59,40 @@ def plot_freq(signal, fs, ax=None):
     -------
     ax: axis object
     """
-    mag, pha, f = _freq_vector(signal, fs)
+    mag_onesided, mag_twosided, pha_onesided, pha_twosided = _mag_pha_vector(
+        signal)
+    f_onesided = _freq_vector_onesided(signal, fs)
+    f_twosided = _freq_vector_twosided(signal, fs)
     if ax is None:
         ax = plt.gca()
-    ax.plot(f, mag)
-    # ax.plot(f, pha)
+    if side is None or side == 'onesided':
+        f = f_onesided
+        mag = mag_onesided
+        pha = pha_onesided
+    elif side == 'twosided':
+        f = f_twosided
+        mag = mag_twosided
+        pha = pha_twosided
+        ax.set_xscale = 'symlog'
+    if scale is None or scale == 'linear':
+        mag = mag
+        ax.set_ylabel('Magnitude (linear)')
+    elif scale == 'dB':
+        mag = 20 * np.log10(mag)
+        ax.set_ylabel('Magnitude (dB)')
+    if bode is None or bode == 'mag':
+        ax.plot(f, mag)
+        ax.set_title('Magnitude Spectrum')
+    elif bode == 'phase':
+        ax.plot(f, pha)
+        ax.set_ylabel('Phase (rad)')
+        ax.set_title('Phase Spectrum')
+    ax.set_xlabel('f (Hz)')
     ax.grid(True)
-    ax.set_xscale('log')
-    ax.set_xlabel('f / Hz')
-    ax.set_ylabel('Something')
-    ax.set_title('Something in Frequency Domain')
-    # plt.savefig('myplot_f.pdf')
     return ax
 
 
-def plot_tf(signal, fs):
+def plot_tf(signal, fs, config=None, **kwargs):
     """Plot in time and frequency domains simultaneously.
 
     Parameters
@@ -79,19 +104,37 @@ def plot_tf(signal, fs):
     """
     fig, (ax1, ax2) = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.6)
-    plot_time(signal, fs, ax1)
-    plot_freq(signal, fs, ax2)
-    # plt.savefig('myplot_tf.pdf')
+    if config is None:
+        plot_time(signal, fs, ax1)
+        plot_freq(signal, fs, ax2, scale='log')
+    if config == 'freq+freq':
+        plot_freq(signal, fs, ax1, scale='log')
+        plot_freq(signal, fs, ax2, scale='log', bode='phase')
 
 
 def _time_vector(signal, fs):
     return np.arange(len(signal)) / fs
 
 
-def _freq_vector(signal, fs):
-    mag = 20 * np.log10(2 / len(signal) * np.abs(np.fft.rfft(signal)))
-    pha = np.unwrap(
-        np.arctan2(np.fft.rfft(signal).imag,
-                   np.fft.rfft(signal).real))
-    f = np.linspace(0, fs / 2, len(signal) // 2 + 1)
-    return mag, pha, f
+def _freq_vector_onesided(signal, fs):
+    f_onesided = np.linspace(0, fs / 2, len(signal) // 2 + 1)
+    return f_onesided
+
+
+def _freq_vector_twosided(signal, fs):
+    f_twosided = np.linspace(-fs / 2, fs / 2, len(signal))
+    return f_twosided
+
+
+def _mag_pha_vector(signal):
+    signal_f_onesided = np.fft.rfft(signal)
+    signal_f_twosided = np.fft.fftshift(np.fft.fft(signal))
+    mag_onesided = 2 / len(signal) * np.abs(signal_f_onesided)
+    mag_twosided = 2 / len(signal) * np.abs(signal_f_twosided)
+    pha_onesided = np.unwrap(
+        np.arctan2(signal_f_onesided.imag,
+                   signal_f_onesided.real))
+    pha_twosided = np.unwrap(
+        np.arctan2(signal_f_twosided.imag,
+                   signal_f_twosided.real))
+    return mag_onesided, mag_twosided, pha_onesided, pha_twosided
