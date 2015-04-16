@@ -61,4 +61,4 @@ def log_sweep(fstart, fstop, duration, fs):
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, duration, 1 / fs)
     return np.sin(2 * np.pi * duration * fstart / np.log(fstop / fstart) *
-                  np.exp(t / (duration) * np.log(fstop / fstart) - 1))
+                  (np.exp(t / duration * np.log(fstop / fstart)) - 1))
