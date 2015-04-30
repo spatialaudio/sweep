@@ -42,8 +42,8 @@ def plot_freq(
      fs,
      ax=None,
      scale=None,
-     bode=None,
-     side=None,
+     mode=None,
+     sides=None,
      **kwargs):
     """Plot in frequency domain.
 
@@ -59,34 +59,26 @@ def plot_freq(
     -------
     ax: axis object
     """
-    mag_onesided, mag_twosided, pha_onesided, pha_twosided = _mag_pha_vector(
-        signal)
-    f_onesided = _freq_vector_onesided(signal, fs)
-    f_twosided = _freq_vector_twosided(signal, fs)
+
+    result, freqs = _spectral_helper(
+        signal, fs, scale=scale, mode=mode, sides=sides, **kwargs)
+
     if ax is None:
         ax = plt.gca()
-    if side is None or side == 'onesided':
-        f = f_onesided
-        mag = mag_onesided
-        pha = pha_onesided
-    elif side == 'twosided':
-        f = f_twosided
-        mag = mag_twosided
-        pha = pha_twosided
-        ax.set_xscale = 'symlog'
+
     if scale is None or scale == 'linear':
-        mag = mag
         ax.set_ylabel('Magnitude (linear)')
     elif scale == 'dB':
-        mag = 20 * np.log10(mag)
         ax.set_ylabel('Magnitude (dB)')
-    if bode is None or bode == 'mag':
-        ax.plot(f, mag)
+    if mode is None or mode == 'magnitude':
         ax.set_title('Magnitude Spectrum')
-    elif bode == 'phase':
-        ax.plot(f, pha)
-        ax.set_ylabel('Phase (rad)')
+    elif mode == 'phase':
         ax.set_title('Phase Spectrum')
+        ax.set_ylabel('Phase (rad)')
+    elif mode == 'psd':
+        ax.set_title('Power Density Spectrum')
+        ax.set_ylabel('dB / Hz')
+    ax.plot(freqs, result)
     ax.set_xlabel('f (Hz)')
     ax.grid(True)
     return ax
@@ -104,37 +96,50 @@ def plot_tf(signal, fs, config=None, **kwargs):
     """
     fig, (ax1, ax2) = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.6)
-    if config is None:
+    if config is None or config == 'time+freq':
         plot_time(signal, fs, ax1)
-        plot_freq(signal, fs, ax2, scale='log')
+        plot_freq(signal, fs, ax2, scale='dB')
+        ax2.set_xscale('log')
     if config == 'freq+freq':
-        plot_freq(signal, fs, ax1, scale='log')
-        plot_freq(signal, fs, ax2, scale='log', bode='phase')
+        plot_freq(signal, fs, ax1, scale='dB')
+        plot_freq(signal, fs, ax2, mode='phase')
 
 
 def _time_vector(signal, fs):
     return np.arange(len(signal)) / fs
 
 
-def _freq_vector_onesided(signal, fs):
-    f_onesided = np.linspace(0, fs / 2, len(signal) // 2 + 1)
-    return f_onesided
+def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
+
+# modified function 'magnitude_spectrum' from matplotlib.pyplot
 
 
-def _freq_vector_twosided(signal, fs):
-    f_twosided = np.linspace(-fs / 2, fs / 2, len(signal))
-    return f_twosided
+# we have to distinguish bewteen even or odd numbers of samples by
+# calculating freqcenters
+    if len(signal) % 2:
+        freqcenter = (len(signal) - 1) // 2 + 1
+    else:
+        freqcenter = len(signal) // 2
 
+    result = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(len(signal), 1 / fs)
 
-def _mag_pha_vector(signal):
-    signal_f_onesided = np.fft.rfft(signal)
-    signal_f_twosided = np.fft.fftshift(np.fft.fft(signal))
-    mag_onesided = 2 / len(signal) * np.abs(signal_f_onesided)
-    mag_twosided = 2 / len(signal) * np.abs(signal_f_twosided)
-    pha_onesided = np.unwrap(
-        np.arctan2(signal_f_onesided.imag,
-                   signal_f_onesided.real))
-    pha_twosided = np.unwrap(
-        np.arctan2(signal_f_twosided.imag,
-                   signal_f_twosided.real))
-    return mag_onesided, mag_twosided, pha_onesided, pha_twosided
+    if mode == 'psd':
+        result = np.abs(result) ** 2 / (len(signal) * fs)
+    if mode is None or mode == 'magnitude':
+        result = 2 / len(signal) * np.abs(result)
+    if mode == 'phase':
+        result = np.angle(result)
+    if sides is None or sides == 'onesided':
+        freqs = freqs[:freqcenter]
+        result = result[:freqcenter]
+    if sides == 'twosided':
+        freqs = np.concatenate((freqs[freqcenter:], freqs[:freqcenter]))
+        result = np.concatenate((result[freqcenter:], result[:freqcenter]))
+    if mode == 'phase':
+        result = np.unwrap(result, axis=0)
+    if scale == 'dB' and mode != 'phase':
+        result = 20 * np.log10(result)
+    elif mode == 'psd':
+        result = result / 2
+    return result, freqs
