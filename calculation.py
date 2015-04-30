@@ -1,9 +1,11 @@
 """Calculation functions."""
 from __future__ import division
 import numpy as np
+from scipy.signal import butter, lfilter, freqz
+import matplotlib.pyplot as plt
 
 
-def spectral_division(signal_excitation, system_response):
+def deconv_process(excitation, system_response, fs):
     """Calculating impulse response.
 
     Parameters
@@ -18,15 +20,16 @@ def spectral_division(signal_excitation, system_response):
     result.real : array_like
           Returns an impulse response
     """
-    if all(np.isreal(signal_excitation)):
-        NFFT = _pow2(len(signal_excitation) + len(system_response) - 1)
-        signal_excitation_f = np.fft.fft(signal_excitation, NFFT)
-
+    if all(np.isreal(excitation)):
+        NFFT = _pow2(len(excitation) + len(system_response) - 1)
+        butter_w, butter_h = butter_bandpass(20, 10000, 44100, NFFT, order=2)
+        excitation_f = np.fft.fft(excitation, NFFT)
+        excitation_f_inv = 1 / excitation_f
     else:
-        NFFT = len(signal_excitation)
-        signal_excitation_f = signal_excitation
-
-    return (np.fft.ifft(np.fft.fft(system_response, NFFT)) / signal_excitation_f).real
+        NFFT = len(excitation)
+        butter_w, butter_h = butter_bandpass(20, 10000, 44100, NFFT, order=2)
+        excitation_f_inv = 1 / excitation
+    return np.fft.ifft(np.fft.fft(system_response, NFFT) * excitation_f_inv * butter_h).real
 
 
 def snr_db(signal, noise):
@@ -47,7 +50,7 @@ def snr_db(signal, noise):
 
 
 def _mean_power(signal):
-    return np.mean(abs(signal ** 2))
+    return np.mean(np.abs(signal ** 2))
 
 
 def _pow2(n):
@@ -55,3 +58,11 @@ def _pow2(n):
     while i < n:
         i *= 2
     return i
+
+
+def butter_bandpass(lower_bound, higher_bound, fs, NFFT, order):
+    low = lower_bound / (fs / 2)
+    high = higher_bound / (fs / 2)
+    b, a = butter(order, [low, high], btype='band')
+    butter_w, butter_h = freqz(b, a, worN=NFFT, whole=True)
+    return butter_w, butter_h
