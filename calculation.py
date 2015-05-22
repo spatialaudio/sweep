@@ -1,35 +1,16 @@
 """Calculation functions."""
 from __future__ import division
 import numpy as np
-from scipy.signal import butter, lfilter, freqz
+from scipy.signal import butter, freqz
 import matplotlib.pyplot as plt
 
 
 def deconv_process(excitation, system_response, fs):
-    """Calculating impulse response.
-
-    Parameters
-    ----------
-    signal_excitation : array_like
-          Excitation signal in time or frequency domains
-    system_response: array_like
-          System response in time domain
-
-    Returns
-    -------
-    result.real : array_like
-          Returns an impulse response
-    """
-    if all(np.isreal(excitation)):
-        NFFT = _pow2(len(excitation) + len(system_response) - 1)
-        butter_w, butter_h = butter_bandpass(20, 10000, 44100, NFFT, order=2)
-        excitation_f = np.fft.fft(excitation, NFFT)
-        excitation_f_inv = 1 / excitation_f
-    else:
-        NFFT = len(excitation)
-        butter_w, butter_h = butter_bandpass(20, 10000, 44100, NFFT, order=2)
-        excitation_f_inv = 1 / excitation
-    return np.fft.ifft(np.fft.fft(system_response, NFFT) * excitation_f_inv * butter_h).real
+    NFFT = _pow2(len(excitation) + len(system_response) - 1)
+    excitation_f = np.fft.fft(excitation, NFFT)
+    excitation_f_inv = 1 / excitation_f
+    #butter_w, butter_h = butter_bandpass(20, 20000, fs, NFFT, order=2)
+    return np.fft.ifft(np.fft.fft(system_response, NFFT) * excitation_f_inv).real
 
 
 def snr_db(signal, noise):
@@ -37,14 +18,14 @@ def snr_db(signal, noise):
 
     Parameters
     ----------
-    signal : array_like
+    excitation : array_like
           Signal vector
-    noise : array_like
+    system_response : array_like
           Noise vector
 
     Returns
     -------
-    Returns SNR in dB
+    Return SNR in dB
     """
     return 10 * np.log10(_mean_power(signal) / _mean_power(noise))
 
@@ -60,9 +41,22 @@ def _pow2(n):
     return i
 
 
+def coherency(excitation, system_response):
+    Rxx = np.correlate(excitation, excitation, 'full')
+    Ryy = np.correlate(system_response, system_response, 'full')
+    Ryx = np.correlate(system_response, excitation, 'full')
+    return np.abs(Ryx) ** 2 / (Rxx * Ryy)
+
+
 def butter_bandpass(lower_bound, higher_bound, fs, NFFT, order):
-    low = lower_bound / (fs / 2)
-    high = higher_bound / (fs / 2)
-    b, a = butter(order, [low, high], btype='band')
+    wl = lower_bound / (fs / 2)
+    wh = higher_bound / (fs / 2)
+    b, a = butter(order, [wl, wh], btype='band')
     butter_w, butter_h = freqz(b, a, worN=NFFT, whole=True)
     return butter_w, butter_h
+
+
+def limiter(signal, threshold_dB):
+    array_positions = np.where(signal < threshold_dB)
+    signal[array_positions] = threshold_dB
+    return signal
