@@ -6,22 +6,7 @@ import matplotlib.pyplot as plt
 import calculation
 
 
-def plot_time(signal, fs=None, ax=None, **kwargs):
-    """Plot in time domain.
-
-    Parameters
-    ----------
-    signal : array_like
-          Signal vector
-    fs : int, optional
-          Sampling frequency in Hz. If None (default),
-          fs switches to number of bins.
-    ax : axis object, optional
-
-    Returns
-    ------
-    ax : axis object
-    """
+def plot_time(signal, fs=None, ax=None, scale=None, sides=None, **kwargs):
     if ax is None:
         ax = plt.gca()
     if fs is None:
@@ -30,9 +15,18 @@ def plot_time(signal, fs=None, ax=None, **kwargs):
     else:
         ax.set_xlabel("t (s)")
     t = _time_vector(signal, fs)
-    ax.plot(t, signal)
+    if scale is None or scale == 'linear':
+        ax.set_ylabel('x(t) (linear)')
+    if scale == 'dB':
+        signal = _dB_calculation(signal)
+        ax.set_ylabel('x(t) (dB)')
+    if sides is None or sides == 'onesided':
+        ax.plot(t, signal)
+    if sides == 'twosided':
+        x = np.linspace(-len(signal) // 2, len(signal) // 2, len(signal)) / fs
+        ax.plot(x, np.fft.fftshift(signal))
     ax.grid(True)
-    ax.set_ylabel('x(t)')
+    # ax.set_xlim([-1, (len(t)/fs)/5])
     ax.set_title('Time Domain')
     return ax
 
@@ -45,23 +39,9 @@ def plot_freq(
      mode=None,
      sides=None,
      **kwargs):
-    """Plot in frequency domain.
-
-    Parameters
-    ----------
-    signal : array_like
-          Signal vector
-    fs : int
-      Sampling frequency in Hz
-    ax : axis object, optional
-
-    Returns
-    -------
-    ax: axis object
-    """
 
     result, freqs = _spectral_helper(
-        signal, fs, scale=scale, mode=mode, sides=sides, **kwargs)
+        signal, fs, scale=scale, mode=mode, **kwargs)
 
     if ax is None:
         ax = plt.gca()
@@ -85,15 +65,6 @@ def plot_freq(
 
 
 def plot_tf(signal, fs, config=None, **kwargs):
-    """Plot in time and frequency domains simultaneously.
-
-    Parameters
-    ----------
-    signal : array_like
-          Signal vector
-    fs : int
-          Sampling Frequency in Hz
-    """
     fig, (ax1, ax2) = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.6)
     if config is None or config == 'time+freq':
@@ -111,18 +82,8 @@ def _time_vector(signal, fs):
 
 def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
 
-# modified function 'magnitude_spectrum' from matplotlib.pyplot
-
-
-# we have to distinguish bewteen even or odd numbers of samples by
-# calculating freqcenters
-    if len(signal) % 2:
-        freqcenter = (len(signal) - 1) // 2 + 1
-    else:
-        freqcenter = len(signal) // 2
-
-    result = np.fft.fft(signal)
-    freqs = np.fft.fftfreq(len(signal), 1 / fs)
+    result = np.fft.rfft(signal)
+    freqs = np.fft.rfftfreq(len(signal), 1 / fs)
 
     if mode == 'psd':
         result = np.abs(result) ** 2 / (len(signal) * fs)
@@ -130,16 +91,13 @@ def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
         result = 2 / len(signal) * np.abs(result)
     if mode == 'phase':
         result = np.angle(result)
-    if sides is None or sides == 'onesided':
-        freqs = freqs[:freqcenter]
-        result = result[:freqcenter]
-    if sides == 'twosided':
-        freqs = np.concatenate((freqs[freqcenter:], freqs[:freqcenter]))
-        result = np.concatenate((result[freqcenter:], result[:freqcenter]))
-    if mode == 'phase':
         result = np.unwrap(result, axis=0)
     if scale == 'dB' and mode != 'phase':
-        result = 20 * np.log10(result)
+        result = _dB_calculation(result)
     elif mode == 'psd':
         result = result / 2
     return result, freqs
+
+
+def _dB_calculation(signal):
+    return 20 * np.log10(np.abs(signal))
