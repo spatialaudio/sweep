@@ -2,7 +2,6 @@
 from __future__ import division
 import numpy as np
 from scipy.signal import butter, freqz
-import matplotlib.pyplot as plt
 
 
 def deconv_process(excitation, system_response, fs):
