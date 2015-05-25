@@ -33,7 +33,7 @@ def lin_sweep(fstart, fstop, duration, fs):
         2 * np.pi * ((fstop - fstart) /
                      (2 * duration) * t ** 2 + fstart * t))
     # excitation = excitation - np.mean(excitation)  # remove direct component
-    return zero_padding(excitation, fs)
+    return excitation
 
 
 def log_sweep(fstart, fstop, duration, fs):
@@ -65,23 +65,20 @@ def log_sweep(fstart, fstop, duration, fs):
     excitation = np.sin(2 * np.pi * duration * fstart / np.log(fstop / fstart) *
                         (np.exp(t / duration * np.log(fstop / fstart)) - 1))
     # excitation = excitation - np.mean(excitation)  # remove direct component
-    return zero_padding(excitation, fs)
+    return excitation
 
 
-def noise(standard_deviation, duration, fs, seed):
-    t = np.arange(0, duration, 1 / fs)
+def noise(noise_level_dB, duration, fs, seed=None):
+    if seed is None:
+        seed = 1
     np.random.seed(seed)
-    return zero_padding(np.random.normal(0, standard_deviation, len(t)), fs)
+    standard_deviation = 10 ** (noise_level_dB / 20)
+    return np.random.normal(0, standard_deviation, duration * fs)
 
 
-def zero_padding(signal, fs):
-    """Zeropadding a signal.
-
-    It is a necessity to zeropadd the excitation signal
-    to avoid zircular artifacts, if the system response is longer
-    than the excitation signal. Therfore, the excitation signal has
-    been extended for freely chosen 5 seconds. If you want to simulate
-    the 'Cologne Cathedral', feel free to zeropadd more seconds.
-    """
-    number_of_zeros = 5 * fs
+def zero_padding(signal, fs, appending_time=None):
+    """Zeropadding a signal."""
+    if appending_time is None:
+        appending_time = 5
+    number_of_zeros = appending_time * fs
     return np.concatenate((signal, np.zeros(number_of_zeros)))
