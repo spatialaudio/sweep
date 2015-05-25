@@ -6,7 +6,14 @@ import matplotlib.pyplot as plt
 import calculation
 
 
-def plot_time(signal, fs=None, ax=None, scale=None, sides=None, **kwargs):
+def plot_time(
+    signal,
+     fs=None,
+     ax=None,
+     scale='linear',
+     sides='onesided',
+     title=None,
+     **kwargs):
     if ax is None:
         ax = plt.gca()
     if fs is None:
@@ -14,20 +21,25 @@ def plot_time(signal, fs=None, ax=None, scale=None, sides=None, **kwargs):
         ax.set_xlabel("Samples")
     else:
         ax.set_xlabel("t (s)")
-    t = _time_vector(signal, fs)
-    if scale is None or scale == 'linear':
+    t = _time_vector_onesided(signal, fs)
+    if scale == 'linear':
         ax.set_ylabel('x(t) (linear)')
-    if scale == 'dB':
+    elif scale == 'dB':
         signal = _dB_calculation(signal)
         ax.set_ylabel('x(t) (dB)')
-    if sides is None or sides == 'onesided':
+    else:
+        raise NameError("Invalid scale")
+    if sides == 'onesided':
         ax.plot(t, signal)
-    if sides == 'twosided':
-        x = np.linspace(-len(signal) // 2, len(signal) // 2, len(signal)) / fs
-        ax.plot(x, np.fft.fftshift(signal))
+    elif sides == 'twosided':
+        ax.plot(time_vector_twosided(signal, fs), np.fft.fftshift(signal))
+    else:
+        raise NameError("Invalid sides")
+    if title is None:
+            ax.set_title('')
+    ax.set_title(title)
     ax.grid(True)
     # ax.set_xlim([-1, (len(t)/fs)/5])
-    ax.set_title('Time Domain')
     return ax
 
 
@@ -35,8 +47,8 @@ def plot_freq(
     signal,
      fs,
      ax=None,
-     scale=None,
-     mode=None,
+     scale='linear',
+     mode='magnitude',
      sides=None,
      **kwargs):
 
@@ -46,11 +58,13 @@ def plot_freq(
     if ax is None:
         ax = plt.gca()
 
-    if scale is None or scale == 'linear':
+    if scale == 'linear':
         ax.set_ylabel('Magnitude (linear)')
     elif scale == 'dB':
         ax.set_ylabel('Magnitude (dB)')
-    if mode is None or mode == 'magnitude':
+    else:
+        raise NameError("Invalid scale")
+    if mode == 'magnitude':
         ax.set_title('Magnitude Spectrum')
     elif mode == 'phase':
         ax.set_title('Phase Spectrum')
@@ -58,26 +72,26 @@ def plot_freq(
     elif mode == 'psd':
         ax.set_title('Power Density Spectrum')
         ax.set_ylabel('dB / Hz')
+    else:
+        raise NameError("Invalid mode")
     ax.plot(freqs, result)
     ax.set_xlabel('f (Hz)')
     ax.grid(True)
     return ax
 
 
-def plot_tf(signal, fs, config=None, **kwargs):
+def plot_tf(signal, fs, config='time+freq', **kwargs):
     fig, (ax1, ax2) = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.6)
-    if config is None or config == 'time+freq':
+    if config == 'time+freq':
         plot_time(signal, fs, ax1)
         plot_freq(signal, fs, ax2, scale='dB')
         ax2.set_xscale('log')
-    if config == 'freq+freq':
+    elif config == 'mag+pha':
         plot_freq(signal, fs, ax1, scale='dB')
         plot_freq(signal, fs, ax2, mode='phase')
-
-
-def _time_vector(signal, fs):
-    return np.arange(len(signal)) / fs
+    else:
+        raise NameError("Invalid config")
 
 
 def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
@@ -101,3 +115,11 @@ def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
 
 def _dB_calculation(signal):
     return 20 * np.log10(np.abs(signal))
+
+
+def _time_vector_onesided(signal, fs):
+    return np.arange(len(signal)) / fs
+
+
+def _time_vector_twosided(signal, fs):
+    return np.linspace(-len(signal) // 2, len(signal) // 2, len(signal)) / fs
