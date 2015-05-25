@@ -5,10 +5,19 @@ from scipy.signal import butter, freqz
 
 
 def deconv_process(excitation, system_response, fs):
+    """Deconvolution.
+
+    It is a necessity to zeropadd the excitation signal
+    to avoid zircular artifacts, if the system response is longer
+    than the excitation signal. Therfore, the excitation signal has
+    been extended for freely chosen 5 seconds as default. If you want
+    to simulate the 'Cologne Cathedral', feel free to zeropadd
+    more seconds.
+    """
     NFFT = _pow2(len(excitation) + len(system_response) - 1)
     excitation_f = np.fft.fft(excitation, NFFT)
     excitation_f_inv = 1 / excitation_f
-    #butter_w, butter_h = butter_bandpass(20, 20000, fs, NFFT, order=2)
+    # butter_w, butter_h = butter_bandpass(20, 20000, fs, NFFT, order=2)
     return np.fft.ifft(np.fft.fft(system_response, NFFT) * excitation_f_inv).real
 
 
@@ -17,9 +26,9 @@ def snr_db(signal, noise):
 
     Parameters
     ----------
-    excitation : array_like
+    signal : array_like
           Signal vector
-    system_response : array_like
+    noise : array_like
           Noise vector
 
     Returns
