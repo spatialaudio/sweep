@@ -1,6 +1,7 @@
 """Signal Generation."""
 
 import numpy as np
+import calculation
 
 
 def lin_sweep(fstart, fstop, duration, fs):
@@ -68,17 +69,11 @@ def log_sweep(fstart, fstop, duration, fs):
     return excitation
 
 
-def noise(noise_level_dB, duration, fs, seed=None):
-    if seed is None:
-        seed = 1
-    np.random.seed(seed)
-    standard_deviation = 10 ** (noise_level_dB / 20)
-    return np.random.normal(0, standard_deviation, duration * fs)
+def noise(noise_level_db, duration, fs, seed=1):
+    return calculation.noise_db(noise_level_db, duration * fs, seed)
 
 
-def zero_padding(signal, fs, appending_time=None):
+def zero_padding(signal, appending_time, fs):
     """Zeropadding a signal."""
-    if appending_time is None:
-        appending_time = 5
     number_of_zeros = appending_time * fs
     return np.concatenate((signal, np.zeros(number_of_zeros)))
