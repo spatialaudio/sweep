@@ -68,3 +68,9 @@ def limiter(signal, threshold_dB):
     array_positions = np.where(signal < threshold_dB)
     signal[array_positions] = threshold_dB
     return signal
+
+
+def noise_db(level, size=None, seed=1):
+    scale = 10 ** (level / 20.)
+    np.random.seed(seed)
+    return np.random.normal(scale=scale, size=size)
