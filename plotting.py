@@ -32,12 +32,11 @@ def plot_time(
     if sides == 'onesided':
         ax.plot(t, signal)
     elif sides == 'twosided':
-        ax.plot(time_vector_twosided(signal, fs), np.fft.fftshift(signal))
+        ax.plot(_time_vector_twosided(signal, fs), np.fft.fftshift(signal))
     else:
         raise NameError("Invalid sides")
-    if title is None:
-            ax.set_title('')
-    ax.set_title(title)
+    if title is not None:
+        ax.set_title(title)
     ax.grid(True)
     # ax.set_xlim([-1, (len(t)/fs)/5])
     return ax
