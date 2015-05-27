@@ -1,6 +1,7 @@
 from scipy.signal import butter, lfilter, fftconvolve
 import numpy as np
 import generation
+import calculation
 
 
 # superior DUT begin
@@ -16,17 +17,12 @@ def bandpass(lower_bound, higher_bound, fs, order):
     return inner
 
 
-def additive_noise(noise_level_dB, seed=None):
-    if seed is None:
-        seed = 1
-        np.random.seed(seed)
-
+def additive_noise(noise_level_db, seed=None):
     def inner(data):
-        standard_deviation = 10 ** (noise_level_dB / 20)
-        return data + np.random.normal(0, standard_deviation, len(data))
+        return data + calculation.noise_db(noise_level_db, len(data), seed)
     inner.name = "additive noise with {} dB noise level".format(
-        noise_level_dB)
-    inner.filename = "{}noise".format(noise_level_dB)
+        noise_level_db)
+    inner.filename = "{}noise".format(noise_level_db)
     return inner
 
 
@@ -50,17 +46,6 @@ def add_gain(gain_level_dB):
 
 # subordinate DUT begin
 
-#~ def diracs(dirac_positions_array):
-    #~ def inner(data):
-        #~ h = np.zeros(len(data))
-        #~ for i in dirac_positions_array:
-            #~ h[i] = 1
-        #~ return fftconvolve(data, h)[:len(data)]
-    #~ inner.name = "dirac-filter positions:{}".format(dirac_positions_array)
-    #~ inner.filename = "dirac{}".format(dirac_positions_array)
-    #~ return inner
-
-
 def moving_average(N):
     # for more information:
     # http://stackoverflow.com/questions/13728392/moving-average-or-running-mean
@@ -72,10 +57,10 @@ def moving_average(N):
     return inner
 
 
-def take_ir(ir):
+def take_ir(ir):  # string übergeben
     def inner(data):
         return fftconvolve(data, ir)[:len(data)]
-    inner.name = "{}".format("IR")
+    inner.name = "{}".format("IR")  # inner.name = string
     inner.filename = "{}".format("IR")
     return inner
 
@@ -87,19 +72,21 @@ def take_ir(ir):
 
 # generate some impulse responses begin
 
-def exponential_decay(excitation, standard_deviation, lifetime, seed=None):
-    if seed is None:
-        seed = 1
-    t = np.arange(len(excitation)) / len(excitation)
-    np.random.seed(seed)
-    noise = np.random.normal(0, standard_deviation, len(excitation))
-    exponential_fading_noise = noise * np.exp(-t / lifetime)
+def exponential_decay(
+    duration_seconds,
+     lifetime_seconds,
+     noise_level_db,
+     fs,
+     seed=1):
+    t = np.arange(0, duration_seconds, 1 / fs)
+    noise = calculation.noise_db(noise_level_db, duration_seconds * fs, seed)
+    exponential_fading_noise = noise * np.exp(-t / lifetime_seconds)
     exponential_fading_noise[0] = 1
     return exponential_fading_noise
 
 
-def diracs(excitation, dirac_positions_array):
-    h = np.zeros(len(excitation))
+def diracs(duration_seconds, dirac_positions_array, fs):
+    h = np.zeros(duration_seconds * fs)
     for i in dirac_positions_array:
         h[i] = 1
     return h
