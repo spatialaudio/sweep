@@ -70,7 +70,7 @@ def log_sweep(fstart, fstop, duration, fs):
 
 
 def noise(noise_level_db, duration, fs, seed=1):
-    return calculation.noise_db(noise_level_db, duration * fs, seed)
+    return calculation.awgn_noise(noise_level_db, duration * fs, seed)
 
 
 def zero_padding(signal, appending_time, fs):
