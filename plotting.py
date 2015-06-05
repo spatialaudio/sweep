@@ -3,17 +3,16 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-import calculation
+from . import calculation
 
 
-def plot_time(
-    signal,
-     fs=None,
-     ax=None,
-     scale='linear',
-     sides='onesided',
-     title=None,
-     **kwargs):
+def plot_time(signal,
+              fs=None,
+              ax=None,
+              scale='linear',
+              sides='onesided',
+              title=None,
+              **kwargs):
     if ax is None:
         ax = plt.gca()
     if fs is None:
@@ -23,16 +22,20 @@ def plot_time(
         ax.set_xlabel("t (s)")
     t = _time_vector_onesided(signal, fs)
     if scale == 'linear':
-        ax.set_ylabel('x(t) (linear)')
+        ax.set_ylabel('Amplitude (linear)')
     elif scale == 'dB':
-        signal = _dB_calculation(signal)
-        ax.set_ylabel('x(t) (dB)')
+        signal = _db_calculation(signal)
+        ax.set_ylabel('Amplitude (dB)')
     else:
         raise NameError("Invalid scale")
     if sides == 'onesided':
-        ax.plot(t, signal)
+        ax.plot(t, signal, linewidth=2.0)
     elif sides == 'twosided':
-        ax.plot(_time_vector_twosided(signal, fs), np.fft.fftshift(signal))
+        ax.plot(
+            _time_vector_twosided(signal,
+                                  fs),
+            np.fft.fftshift(signal),
+            linewidth=1.0)
     else:
         raise NameError("Invalid sides")
     if title is not None:
@@ -42,14 +45,14 @@ def plot_time(
     return ax
 
 
-def plot_freq(
-    signal,
-     fs,
-     ax=None,
-     scale='linear',
-     mode='magnitude',
-     sides=None,
-     **kwargs):
+def plot_freq(signal,
+              fs,
+              ax=None,
+              scale='linear',
+              mode='magnitude',
+              sides=None,
+              title=None,
+              **kwargs):
 
     result, freqs = _spectral_helper(
         signal, fs, scale=scale, mode=mode, **kwargs)
@@ -59,21 +62,30 @@ def plot_freq(
 
     if scale == 'linear':
         ax.set_ylabel('Magnitude (linear)')
-    elif scale == 'dB':
+    elif scale == 'db':
         ax.set_ylabel('Magnitude (dB)')
     else:
         raise NameError("Invalid scale")
     if mode == 'magnitude':
-        ax.set_title('Magnitude Spectrum')
+        if title is not None:
+            ax.set_title(title)
+        else:
+            ax.set_title('Magnitude Spectrum')
     elif mode == 'phase':
-        ax.set_title('Phase Spectrum')
+        if title is not None:
+            ax.set_title(title)
+        else:
+            ax.set_title('Phase Spectrum')
         ax.set_ylabel('Phase (rad)')
     elif mode == 'psd':
-        ax.set_title('Power Density Spectrum')
+        if title is not None:
+            ax.set_title(title)
+        else:
+            ax.set_title('Power Density Spectrum')
         ax.set_ylabel('dB / Hz')
     else:
         raise NameError("Invalid mode")
-    ax.plot(freqs, result)
+    ax.plot(freqs, result, linewidth=2.0)
     ax.set_xlabel('f (Hz)')
     ax.grid(True)
     return ax
@@ -84,10 +96,10 @@ def plot_tf(signal, fs, config='time+freq', **kwargs):
     plt.subplots_adjust(hspace=0.6)
     if config == 'time+freq':
         plot_time(signal, fs, ax1)
-        plot_freq(signal, fs, ax2, scale='dB')
+        plot_freq(signal, fs, ax2, scale='db')
         ax2.set_xscale('log')
     elif config == 'mag+pha':
-        plot_freq(signal, fs, ax1, scale='dB')
+        plot_freq(signal, fs, ax1, scale='db')
         plot_freq(signal, fs, ax2, mode='phase')
     else:
         raise NameError("Invalid config")
@@ -105,14 +117,14 @@ def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
     if mode == 'phase':
         result = np.angle(result)
         result = np.unwrap(result, axis=0)
-    if scale == 'dB' and mode != 'phase':
-        result = _dB_calculation(result)
+    if scale == 'db' and mode != 'phase':
+        result = _db_calculation(result)
     elif mode == 'psd':
         result = result / 2
     return result, freqs
 
 
-def _dB_calculation(signal):
+def _db_calculation(signal):
     return 20 * np.log10(np.abs(signal))
 
 
