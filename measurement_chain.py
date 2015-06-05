@@ -1,10 +1,7 @@
 from scipy.signal import butter, lfilter, fftconvolve
 import numpy as np
-import generation
-import calculation
-
-
-# superior DUT begin
+from . import generation
+from . import calculation
 
 
 def bandpass(lower_bound, higher_bound, fs, order):
@@ -17,9 +14,9 @@ def bandpass(lower_bound, higher_bound, fs, order):
     return inner
 
 
-def additive_noise(noise_level_db, seed=None):
+def additive_noise(noise_level_db, seed=1):
     def inner(data):
-        return data + calculation.noise_db(noise_level_db, len(data), seed)
+        return data + calculation.awgn_noise(noise_level_db, len(data), seed)
     inner.name = "additive noise with {} dB noise level".format(
         noise_level_db)
     inner.filename = "{}noise".format(noise_level_db)
@@ -36,15 +33,13 @@ def anti_aliasing_filter(cutoff, fs, order):
     return inner
 
 
-def add_gain(gain_level_dB):
+def add_gain(gain_level_db):
     def inner(data):
         return 10 ** (gain_level_in_dB / 20) * data
-    inner.name = "add {} dB to the signal".format(gain_level_dB)
-    inner.filename = "addgain{}dB".format(gain_level_dB)
+    inner.name = "add {} dB to the signal".format(gain_level_db)
+    inner.filename = "addgain{}dB".format(gain_level_db)
     return inner
 
-
-# subordinate DUT begin
 
 def moving_average(N):
     # for more information:
@@ -57,27 +52,27 @@ def moving_average(N):
     return inner
 
 
-def take_ir(ir):  # string übergeben
+def convolution(ir):  # TODO: set string
     def inner(data):
         return fftconvolve(data, ir)[:len(data)]
     inner.name = "{}".format("IR")  # inner.name = string
     inner.filename = "{}".format("IR")
     return inner
 
-# subordinate DUT end
+
+def lfilter_new(b, a): # TODO: add to fir-filter
+    def inner(data):
+        return lfilter(b, a, data)[:len(data)]
+    inner.name = "{}".format("IR")  # inner.name = string
+    inner.filename = "{}".format("IR")
+    return inner
 
 
-# superior DUT end
-
-
-# generate some impulse responses begin
-
-def exponential_decay(
-    duration_seconds,
-     lifetime_seconds,
-     noise_level_db,
-     fs,
-     seed=1):
+def exponential_decay(duration_seconds,
+                      lifetime_seconds,
+                      noise_level_db,
+                      fs,
+                      seed=1):
     t = np.arange(0, duration_seconds, 1 / fs)
     noise = calculation.noise_db(noise_level_db, duration_seconds * fs, seed)
     exponential_fading_noise = noise * np.exp(-t / lifetime_seconds)
@@ -85,13 +80,17 @@ def exponential_decay(
     return exponential_fading_noise
 
 
-def diracs(duration_seconds, dirac_positions_array, fs):
-    h = np.zeros(duration_seconds * fs)
-    for i in dirac_positions_array:
-        h[i] = 1
-    return h
+def diracs(array):
+    a = np.asarray(array)
+    y = np.zeros(a.max() + 1)
+    y[a] = 1
+    return y
 
-# generate some impulse responses end
+
+def bandstop(lower_bound, higher_bound, fs, order):
+    b, a = _butter_bandstop(lower_bound, higher_bound, fs, order)
+    return b, a
+
 
 # Help functions
 
@@ -107,12 +106,19 @@ def chained(*systems):
 
 def _butter_lowpass(cutoff, fs, order):
     wc = cutoff / (fs / 2)
-    b, a = butter(order, wc, btype='low')
+    b, a = butter(order, wc, btype='lowpass')
     return b, a
 
 
 def _butter_bandpass(lower_bound, higher_bound, fs, order):
     wl = lower_bound / (fs / 2)
     wh = higher_bound / (fs / 2)
-    b, a = butter(order, [wl, wh], btype='band')
+    b, a = butter(order, [wl, wh], btype='bandpass')
+    return b, a
+
+
+def _butter_bandstop(lower_bound, higher_bound, fs, order):
+    wl = lower_bound / (fs / 2)
+    wh = higher_bound / (fs / 2)
+    b, a = butter(order, [wl, wh], btype='bandstop')
     return b, a
