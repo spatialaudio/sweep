@@ -1,8 +1,7 @@
 """Calculation functions."""
 from __future__ import division
 import numpy as np
-from . import plotting
-import matplotlib.pyplot as plt
+import plotting
 from scipy.signal import butter, freqz
 
 
