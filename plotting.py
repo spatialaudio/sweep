@@ -3,7 +3,7 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-from . import calculation
+import calculation
 
 
 def plot_time(signal,
@@ -23,7 +23,7 @@ def plot_time(signal,
     t = _time_vector_onesided(signal, fs)
     if scale == 'linear':
         ax.set_ylabel('Amplitude (linear)')
-    elif scale == 'dB':
+    elif scale == 'db':
         signal = _db_calculation(signal)
         ax.set_ylabel('Amplitude (dB)')
     else:
@@ -41,7 +41,6 @@ def plot_time(signal,
     if title is not None:
         ax.set_title(title)
     ax.grid(True)
-    # ax.set_xlim([-1, (len(t)/fs)/5])
     return ax
 
 
