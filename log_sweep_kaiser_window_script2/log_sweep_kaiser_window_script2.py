@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
 
-"""On the influence of windowing of sweep signals.
+"""The influence of windowing of sweep signals when using a
+   Kaiser Window.
 
 """
 
-# Parameters of the measuring system
-
-fs = 44100
-
-fstart = 1
-fstop = 22050
-duration = 1
-pad = 4
 
 import sys
 sys.path.append('..')
@@ -25,6 +18,18 @@ import windows
 from scipy.signal import lfilter
 import numpy as np
 
+
+# Parameters of the measuring system
+
+fs = 44100
+
+fstart = 1
+fstop = 22050
+duration = 1
+pad = 4
+
+# Generate excitation signal
+
 excitation = generation.log_sweep(fstart, fstop, duration, fs)
 N = len(excitation)
 
@@ -34,53 +39,42 @@ N = len(excitation)
 noise_level_db = -20.
 noise = measurement_chain.additive_noise(noise_level_db)
 
-# FIR-Filter
+# FIR-Filter-System
 
-ir = measurement_chain.convolution([1.0])
+dirac_system = measurement_chain.convolution([1.0])
 
+# Combinate system elements
 
-def get_results(system, excitation_windowed_zeropadded):
+system = measurement_chain.chained(dirac_system, noise)
 
-    print("Processing {}".format(system.name))
-
-    system_response = system(excitation_windowed_zeropadded)
-
-    ir = calculation.deconv_process(
-        excitation_windowed_zeropadded,
-        system_response,
-        fs)
-
-    return calculation.snr_db(ir[0], ir[1:4 * fs])
-
-
+# Lists
 fade_in_list = [1, 2]
 fade_out_list = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0]
 beta_list = [1, 2, 3]
-i = 1
 
-f = open("log_sweep_kaiser_window_script2.txt", "w")
-for beta in beta_list:
-    for fade_in in fade_in_list:
-        for fade_out in fade_out_list:
-            excitation_windowed = excitation * \
-                windows.window_kaiser(N, fade_in, fade_out, fs, beta)
-            akf = np.correlate(
-                excitation_windowed,
-                excitation_windowed,
-                'full')
-            excitation_windowed_zeropadded = generation.zero_padding(
-                excitation_windowed, pad, fs)
-            snr = get_results(
-                measurement_chain.chained(ir,
-                                          noise),
-                excitation_windowed_zeropadded)
-            f.write(
-                "Beta: " + str(
-                    beta) + " Fade_in (ms): " + str(
-                        fade_in) + " Fade_out (ms): " + str(
-                            fade_out) + " AKF_max (dB): " + str(
-                    plotting._db_calculation(
-                        akf.max(
-                        ))) + " SNR: (dB)" + str(
-                                snr) + " \n")
-            i += 1
+
+def get_results(fade_in, fade_out, beta):
+    excitation_windowed = excitation * windows.window_kaiser(N,
+                                                             fade_in,
+                                                             fade_out,
+                                                             fs, beta)
+    akf = np.correlate(excitation_windowed, excitation_windowed, 'full')
+    excitation_windowed_zeropadded = generation.zero_padding(
+        excitation_windowed, pad, fs)
+    system_response = system(excitation_windowed_zeropadded)
+    ir = calculation.deconv_process(excitation_windowed_zeropadded,
+                                    system_response,
+                                    fs)
+    return calculation.snr_db(ir[0], ir[1:4 * fs]), akf.max()
+
+
+with open("log_sweep_kaiser_window_script2.txt", "w") as f:
+    for beta in beta_list:
+        for fade_in in fade_in_list:
+            for fade_out in fade_out_list:
+                snr, akf_max = get_results(fade_in, fade_out, beta)
+                f.write("Beta: " + str(beta) + " Fade_in(ms): " +
+                        str(fade_in) + " Fade_out(ms): " +
+                        str(fade_out) + " AKF_max(dB): " +
+                        str(plotting._db_calculation(akf_max)) +
+                        " SNR(dB): " + str(snr) + " \n")
