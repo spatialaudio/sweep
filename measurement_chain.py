@@ -1,7 +1,7 @@
 from scipy.signal import butter, lfilter, fftconvolve
 import numpy as np
-from . import generation
-from . import calculation
+import generation
+import calculation
 
 
 def bandpass(lower_bound, higher_bound, fs, order):
