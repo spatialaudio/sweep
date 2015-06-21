@@ -63,7 +63,8 @@ def log_sweep(fstart, fstop, duration, fs):
     if fstop > fs / 2:
         raise ValueError("fstop must not be greater than fs/2")
     t = np.arange(0, duration, 1 / fs)
-    excitation = np.sin(2 * np.pi * duration * fstart / np.log(fstop / fstart) *
+    excitation = np.sin(2 * np.pi * duration *
+                        fstart / np.log(fstop / fstart) *
                         (np.exp(t / duration * np.log(fstop / fstart)) - 1))
     # excitation = excitation - np.mean(excitation)  # remove direct component
     return excitation
