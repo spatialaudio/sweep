@@ -12,35 +12,40 @@ def plot_time(signal,
               scale='linear',
               sides='onesided',
               title=None,
+              label=None,
               **kwargs):
+    """Plot in Time Domain.
+
+    """
     if ax is None:
         ax = plt.gca()
     if fs is None:
         fs = 1
         ax.set_xlabel("Samples")
     else:
-        ax.set_xlabel("t (s)")
+        ax.set_xlabel("t / s")
     t = _time_vector_onesided(signal, fs)
     if scale == 'linear':
         ax.set_ylabel('Amplitude (linear)')
     elif scale == 'db':
         signal = _db_calculation(signal)
-        ax.set_ylabel('Amplitude (dB)')
+        ax.set_ylabel('Amplitude / dB')
     else:
         raise NameError("Invalid scale")
     if sides == 'onesided':
-        ax.plot(t, signal, linewidth=2.0)
+        ax.plot(t, signal, label=label, linewidth=2.0)
     elif sides == 'twosided':
         ax.plot(
             _time_vector_twosided(signal,
                                   fs),
             np.fft.fftshift(signal),
-            linewidth=1.0)
+            label=label, linewidth=1.0)
     else:
         raise NameError("Invalid sides")
     if title is not None:
         ax.set_title(title)
     ax.grid(True)
+    ax.ticklabel_format(useOffset=False)
     return ax
 
 
@@ -52,7 +57,9 @@ def plot_freq(signal,
               sides=None,
               title=None,
               **kwargs):
+    """Plot in Frequency Domain.
 
+    """
     result, freqs = _spectral_helper(
         signal, fs, scale=scale, mode=mode, **kwargs)
 
@@ -62,7 +69,7 @@ def plot_freq(signal,
     if scale == 'linear':
         ax.set_ylabel('Magnitude (linear)')
     elif scale == 'db':
-        ax.set_ylabel('Magnitude (dB)')
+        ax.set_ylabel('Magnitude / dB')
     else:
         raise NameError("Invalid scale")
     if mode == 'magnitude':
@@ -75,7 +82,7 @@ def plot_freq(signal,
             ax.set_title(title)
         else:
             ax.set_title('Phase Spectrum')
-        ax.set_ylabel('Phase (rad)')
+        ax.set_ylabel('Phase / rad')
     elif mode == 'psd':
         if title is not None:
             ax.set_title(title)
@@ -84,13 +91,17 @@ def plot_freq(signal,
         ax.set_ylabel('dB / Hz')
     else:
         raise NameError("Invalid mode")
-    ax.plot(freqs, result, linewidth=2.0)
-    ax.set_xlabel('f (Hz)')
+    ax.plot(freqs, result, linewidth=1.4)
+    ax.set_xlabel('f / Hz')
     ax.grid(True)
+    ax.ticklabel_format(useOffset=False)
     return ax
 
 
 def plot_tf(signal, fs, config='time+freq', **kwargs):
+    """Subplot of Time and Frequency Domain.
+
+    """
     fig, (ax1, ax2) = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.6)
     if config == 'time+freq':
@@ -115,7 +126,7 @@ def _spectral_helper(signal, fs, scale=None, mode=None, sides=None, **kwargs):
         result = 2 / len(signal) * np.abs(result)
     if mode == 'phase':
         result = np.angle(result)
-        result = np.unwrap(result, axis=0)
+        result = np.unwrap(result)
     if scale == 'db' and mode != 'phase':
         result = _db_calculation(result)
     elif mode == 'psd':
