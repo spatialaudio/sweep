@@ -14,12 +14,10 @@ def deconv_process(excitation, system_response, fs):
     """
     NFFT = _pow2(len(excitation) + len(system_response) - 1)
     excitation_f = np.fft.rfft(excitation, NFFT)
-    excitation_f_inv = 1 / excitation_f
-    # butter_w, butter_h = butter_bandpass(10, 22049, fs, NFFT//2+1, order=2)
-    return np.fft.irfft(np.fft.rfft(system_response, NFFT) * excitation_f_inv)
+    return np.fft.irfft(np.fft.rfft(system_response, NFFT) / excitation_f)
 
 
-def snr_db(signal, noise):
+def pnr_db(peak, noise):
     """Calculating Signal-to-noise ratio.
 
     Parameters
@@ -33,11 +31,17 @@ def snr_db(signal, noise):
     -------
     Return SNR in dB
     """
-    return 10 * np.log10(_mean_power(signal) / _mean_power(noise))
+    return 10 * np.log10(peak**2 / _mean_power(noise))
 
 
 def _mean_power(signal):
     return np.mean(np.square(signal))
+
+
+def peak_to_noise_ratio(ir, noise_bound_begin, fs):
+    peak = ir[0]
+    noise = ir[noise_bound_begin:]
+    return pnr_db(peak, noise)
 
 
 def _pow2(n):
@@ -47,22 +51,27 @@ def _pow2(n):
     return i
 
 
-def butter_bandpass(lower_bound, higher_bound, fs, NFFT, order):
+def butter_bandpass_regularisation(lower_bound, higher_bound, fs, NFFT, order):
     wl = lower_bound / (fs / 2)
     wh = higher_bound / (fs / 2)
-    b, a = butter(order, [wl, wh], btype='band')
+    b, a = butter(order, [wl, wh], btype='bandpass')
     butter_w, butter_h = freqz(b, a, worN=NFFT, whole=True)
-    return butter_w, butter_h
+    return butter_h
 
-#~ def limiter(signal_f_inv, threshold_dB):
-    #~ signal_f_inv_abs = np.abs(signal_f_inv)
-    #~ signal_f_inv_phase = np.angle(signal_f_inv)
-    #~ signal_f_inv_abs_dB = plotting._dB_calculation(signal_f_inv_abs)
-    #~ array_positions = np.where(signal_f_inv_abs_dB > signal_f_inv_abs_dB.max() + threshold_dB)
-    #~ threshold = 10**((signal_f_inv_abs_dB.max()+threshold_dB)/20)
-    #~ signal_f_inv_abs[array_positions] = threshold
-    #~ signal_f_inv = signal_f_inv_abs * np.exp(1j*signal_f_inv_phase)
-    #~ return signal_f_inv
+
+def butter_bandstop(lower_bound, higher_bound, fs, NFFT, order):
+    wl = lower_bound / (fs / 2)
+    wh = higher_bound / (fs / 2)
+    b, a = butter(order, [wl, wh], btype='bandstop')
+    butter_w, butter_h = freqz(b, a, worN=NFFT, whole=True)
+    return butter_h
+
+
+def butter_lowpass(fc, fs, NFFT, order):
+    wc = fc / (fs / 2)
+    b, a = butter(order, wc, btype='lowpass')
+    butter_w, butter_h = freqz(b, a, worN=NFFT, whole=True)
+    return butter_h
 
 
 def awgn_noise(level, size=None, seed=1):
@@ -70,8 +79,25 @@ def awgn_noise(level, size=None, seed=1):
     np.random.seed(seed)
     return np.random.normal(scale=scale, size=size)
 
-#~ def coherency(excitation, system_response):
-    #~ Rxx = np.correlate(excitation, excitation, 'full')
-    #~ Ryy = np.correlate(system_response, system_response, 'full')
-    #~ Ryx = np.correlate(system_response, excitation, 'full')
-    #~ return np.abs(Ryx) ** 2 / (Rxx * Ryy)
+
+def vector_distance(transfer_function_ideal, transfer_function_deconv):
+    return np.sum(
+        np.abs((transfer_function_ideal - transfer_function_deconv))**2)
+
+
+def start_time_noise_floor(ir_noise_level, ir_db_decay, system_noise):
+    m = ir_db_decay + np.abs(ir_noise_level)
+    return (system_noise + np.abs(ir_noise_level))/m
+
+
+def estimation_function(excitation, system_response, fs):
+    NFFT = _pow2(len(excitation) + len(system_response) - 1)
+    excitation_f = np.fft.rfft(excitation, NFFT)
+    system_response_f = np.fft.rfft(system_response, NFFT)
+    Rxx = np.conjugate(excitation_f)*excitation_f
+    Ryy = np.conjugate(system_response_f)*system_response_f
+    Rxy = excitation_f*np.conjugate(system_response_f)
+    Ryx = system_response_f*np.conjugate(excitation_f)
+    H1 = Ryx / Rxx
+    H2 = Ryy / Rxy
+    return np.fft.irfft(H1), np.fft.irfft(H2)
