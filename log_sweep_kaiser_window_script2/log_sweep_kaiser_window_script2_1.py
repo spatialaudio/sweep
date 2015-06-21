@@ -3,7 +3,8 @@
 """The influence of windowing of log. sweep signals when using a
    Kaiser Window by fixing beta (=7) and fade_in (=0).
    fstart = 1 Hz
-   fstop = 22050 Hz
+   fstop =  22050 Hz
+   Undwindowed Deconvolution
 
 """
 
@@ -17,7 +18,7 @@ import calculation
 import generation
 import matplotlib.pyplot as plt
 import windows
-from scipy.signal import lfilter, fftconvolve
+from scipy.signal import lfilter
 import numpy as np
 
 
@@ -34,7 +35,6 @@ pad = 4
 
 excitation = generation.log_sweep(fstart, fstop, duration, fs)
 N = len(excitation)
-
 
 # Noise in measurement chain
 
@@ -66,16 +66,17 @@ def get_results(fade_out):
                                                              fade_in,
                                                              fade_out,
                                                              fs, beta)
+    excitation_zeropadded = generation.zero_padding(excitation, pad, fs)
     excitation_windowed_zeropadded = generation.zero_padding(
         excitation_windowed, pad, fs)
     system_response = system(excitation_windowed_zeropadded)
-    ir = calculation.deconv_process(excitation_windowed_zeropadded,
+    ir = calculation.deconv_process(excitation_zeropadded,
                                     system_response,
                                     fs)
     return ir
 
 
-with open("log_sweep_kaiser_window_script2.txt", "w") as f:
+with open("log_sweep_kaiser_window_script2_1.txt", "w") as f:
     for fade_out in fade_out_list:
         ir = get_results(fade_out)
         pnr = calculation.pnr_db(ir[0], ir[1:4 * fs])
