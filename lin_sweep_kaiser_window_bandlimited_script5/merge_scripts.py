@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ Script to merge scripts"""
 
 import numpy as np
