@@ -54,6 +54,7 @@ def plot_freq(signal,
               ax=None,
               scale='linear',
               mode='magnitude',
+              stem=False,
               sides=None,
               title=None,
               **kwargs):
@@ -91,7 +92,10 @@ def plot_freq(signal,
         ax.set_ylabel('dB / Hz')
     else:
         raise NameError("Invalid mode")
-    ax.plot(freqs, result, linewidth=1.4)
+    if stem is False:
+        ax.plot(freqs, result, linewidth=1.4)
+    else:
+        ax.stem(freqs, result, linewidth=1.4)
     ax.set_xlabel('f / Hz')
     ax.grid(True)
     ax.ticklabel_format(useOffset=False)
